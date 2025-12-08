@@ -246,6 +246,8 @@ export class ClaudeSseEmitter {
 
   sendText(text) {
     if (!text) return;
+    // 确保思考块先结束，避免与正文交叉
+    this.closeThinkingBlock();
     this.ensureTextBlock();
     this.totalOutputTokens += estimateTokensFromText(text);
     writeSSE(this.res, 'content_block_delta', {
@@ -257,6 +259,8 @@ export class ClaudeSseEmitter {
 
   sendThinking(thinking) {
     if (!thinking) return;
+    // thinking 到来时关闭已有正文块，避免嵌套
+    this.closeTextBlock();
     this.ensureThinkingBlock();
     this.totalOutputTokens += estimateTokensFromText(thinking);
     writeSSE(this.res, 'content_block_delta', {
