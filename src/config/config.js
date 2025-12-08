@@ -43,6 +43,28 @@ RETRY_MAX_ATTEMPTS=3
 
 SYSTEM_INSTRUCTION=
 `;
+function pickEnvOrData(envKey, dataValue, fallback = null) {
+  const envValue = process.env[envKey];
+  if (envValue !== undefined && envValue !== null && envValue !== '') {
+    return envValue;
+  }
+
+  if (dataValue !== undefined && dataValue !== null && dataValue !== '') {
+    return dataValue;
+  }
+
+  return fallback;
+}
+
+function parsePositiveInt(value, defaultValue) {
+  const parsed = parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : defaultValue;
+}
+
+function resolveRequestLogLevel(value, defaultValue = 'all') {
+  const normalized = String(value || '').toLowerCase();
+  return ['off', 'error', 'all'].includes(normalized) ? normalized : defaultValue;
+}
 
 function ensureEnvFile() {
   if (!fs.existsSync(envPath)) {
@@ -121,13 +143,20 @@ function loadConfigFromEnv() {
         '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'
     },
     logging: {
-      requestLogFile: flat.REQUEST_LOG_FILE || null,
-      requestLogDetailDir: flat.REQUEST_LOG_DETAIL_DIR || null,
-      requestLogMaxItems:
-        parseInt(flat.REQUEST_LOG_MAX_ITEMS ?? 200, 10) || 200,
-      requestLogRetentionDays:
-        parseInt(flat.REQUEST_LOG_RETENTION_DAYS ?? 7, 10) || 7,
-      requestLogLevel: flat.REQUEST_LOG_LEVEL || 'all'
+      requestLogFile: pickEnvOrData('REQUEST_LOG_FILE', flat.REQUEST_LOG_FILE, null),
+      requestLogDetailDir: pickEnvOrData('REQUEST_LOG_DETAIL_DIR', flat.REQUEST_LOG_DETAIL_DIR, null),
+      requestLogMaxItems: parsePositiveInt(
+        pickEnvOrData('REQUEST_LOG_MAX_ITEMS', flat.REQUEST_LOG_MAX_ITEMS),
+        200
+      ),
+      requestLogRetentionDays: parsePositiveInt(
+        pickEnvOrData('REQUEST_LOG_RETENTION_DAYS', flat.REQUEST_LOG_RETENTION_DAYS),
+        7
+      ),
+      requestLogLevel: resolveRequestLogLevel(
+        pickEnvOrData('REQUEST_LOG_LEVEL', flat.REQUEST_LOG_LEVEL),
+        'all'
+      )
     },
     // 面板账号相关：仅从 Docker 环境变量读取，启动时在 server 里强制校验
     panelUser: flat.PANEL_USER || null,
